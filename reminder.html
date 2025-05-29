@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Break Reminder</title>
+<style>
+  body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
+  .container { text-align: center; padding: 20px; border-radius: 8px; background-color: white; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+</style>
+</head>
+<body>
+  <div class="container">
+    <p id="message">Relax, a reminder will pop up when it's time to rest.</p>
+  </div>
+
+  <script>
+    function setReminder() {
+      // Calculate random time interval (between 15 and 35 minutes)
+      const minMinutes = 15;
+      const maxMinutes = 35;
+      const randomMinutes = Math.random() * (maxMinutes - minMinutes) + minMinutes;
+      const randomIntervalMilliseconds = randomMinutes * 60 * 1000;
+
+      console.log(`Next reminder in ${randomMinutes.toFixed(2)} minutes.`);
+
+      setTimeout(function() {
+        alert("Time to take a break!");
+        // After the alert is dismissed, set a new reminder
+        setReminder();
+      }, randomIntervalMilliseconds);
+    }
+
+    // Call the function once when the page loads to start the first timer
+    window.onload = setReminder;
+  </script>
+</body>
+</html>
