@@ -10,9 +10,33 @@
 <body>
   <div class="container">
     <p id="message">Relax, a reminder will pop up when it's time to rest.</p>
+    <button id="manualReminderBtn">Manual Reminder</button>
+    <button id="toggleLogBtn" style="margin-top: 10px;">View Log</button>
+    <div id="logContainer" style="display:none; margin-top: 10px; border: 1px solid #ccc; padding: 10px; max-height: 200px; overflow-y: auto; text-align: left;"></div>
   </div>
 
   <script>
+    let reminderLog = [];
+
+    function logReminderTime() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const formattedTime = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      reminderLog.push(formattedTime);
+      console.log("Reminder logged:", formattedTime); // Optional: for easier debugging
+      console.log("Current log:", reminderLog); // Optional: for easier debugging
+    }
+
+    function triggerReminder() {
+      logReminderTime();
+      alert("Time to take a break!");
+    }
+
     function setReminder() {
       // Calculate random time interval (between 15 and 35 minutes)
       const minMinutes = 15;
@@ -23,6 +47,7 @@
       console.log(`Next reminder in ${randomMinutes.toFixed(2)} minutes.`);
 
       setTimeout(function() {
+        logReminderTime(); // Log before showing the alert
         alert("Time to take a break!");
         // After the alert is dismissed, set a new reminder
         setReminder();
@@ -30,7 +55,47 @@
     }
 
     // Call the function once when the page loads to start the first timer
-    window.onload = setReminder;
+    window.onload = function() {
+      setReminder(); // Start automatic reminders
+
+      const manualReminderBtn = document.getElementById("manualReminderBtn");
+      if (manualReminderBtn) {
+        manualReminderBtn.addEventListener('click', triggerReminder);
+      } else {
+        console.error("Manual reminder button not found!");
+      }
+
+      const toggleLogBtn = document.getElementById("toggleLogBtn");
+      const logContainer = document.getElementById("logContainer");
+
+      if (toggleLogBtn && logContainer) {
+        toggleLogBtn.addEventListener('click', function() {
+          const isLogVisible = logContainer.style.display === "block";
+          if (isLogVisible) {
+            logContainer.style.display = "none";
+            toggleLogBtn.textContent = "View Log";
+          } else {
+            logContainer.style.display = "block";
+            toggleLogBtn.textContent = "Hide Log";
+            logContainer.innerHTML = ""; // Clear previous log entries
+
+            if (reminderLog.length === 0) {
+              const p = document.createElement("p");
+              p.textContent = "No reminders logged yet.";
+              logContainer.appendChild(p);
+            } else {
+              reminderLog.forEach(function(logEntry) {
+                const p = document.createElement("p");
+                p.textContent = logEntry;
+                logContainer.appendChild(p);
+              });
+            }
+          }
+        });
+      } else {
+        console.error("Toggle log button or log container not found!");
+      }
+    };
   </script>
 </body>
 </html>
