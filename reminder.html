@@ -17,6 +17,72 @@
 
   <script>
     let reminderLog = [];
+    let audioCtx = null;
+
+    function initializeAudio() {
+      if (!audioCtx) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          console.log("AudioContext initialized.");
+        } catch (e) {
+          console.error("Web Audio API is not supported or could not be initialized.", e);
+        }
+      }
+      // It's also good practice to resume the AudioContext on a user gesture if it was suspended.
+      // This might be needed if the page loads and audioCtx is created, but then suspended by the browser.
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => console.log("AudioContext resumed."));
+      }
+    }
+
+    function playBeep() {
+      if (!audioCtx) {
+        console.warn("AudioContext not available, cannot play beep. Attempting to initialize.");
+        initializeAudio(); // Try to initialize it now
+        if (!audioCtx) {
+          console.error("Failed to initialize AudioContext for beep.");
+          // Fallback to alert if audio fails completely
+          alert("Time to take a break! (Audio Error)");
+          return;
+        }
+      }
+       // Ensure it's resumed, especially if playBeep is called without prior user interaction
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+          console.log("AudioContext resumed by playBeep.");
+          // Now actually play the sound
+          const oscillator = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+
+          oscillator.type = 'sine'; // 'sine', 'square', 'sawtooth', 'triangle'
+          oscillator.frequency.setValueAtTime(440, audioCtx.currentTime); // A4 note
+          gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime); // Start with a gentle volume
+
+          oscillator.start(audioCtx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5); // Fade out
+          oscillator.stop(audioCtx.currentTime + 0.5); // Stop after 0.5 seconds
+        }).catch(e => {
+            console.error("Error resuming AudioContext in playBeep: ", e);
+            alert("Time to take a break! (Audio Resume Error)");
+        });
+      } else {
+        // AudioContext is active, play sound directly
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+
+        oscillator.start(audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.5);
+        oscillator.stop(audioCtx.currentTime + 0.5);
+      }
+    }
 
     function logReminderTime() {
       const now = new Date();
@@ -34,7 +100,7 @@
 
     function triggerReminder() {
       logReminderTime();
-      alert("Time to take a break!");
+      playBeep();
     }
 
     function setReminder() {
@@ -47,20 +113,26 @@
       console.log(`Next reminder in ${randomMinutes.toFixed(2)} minutes.`);
 
       setTimeout(function() {
-        logReminderTime(); // Log before showing the alert
-        alert("Time to take a break!");
-        // After the alert is dismissed, set a new reminder
+        logReminderTime(); // Log before playing the sound
+        playBeep();
+        // After the sound is played (or initiated), set a new reminder
         setReminder();
       }, randomIntervalMilliseconds);
     }
 
     // Call the function once when the page loads to start the first timer
     window.onload = function() {
+      initializeAudio(); // Attempt to initialize AudioContext on load
+
       setReminder(); // Start automatic reminders
 
       const manualReminderBtn = document.getElementById("manualReminderBtn");
       if (manualReminderBtn) {
-        manualReminderBtn.addEventListener('click', triggerReminder);
+        manualReminderBtn.addEventListener('click', function() {
+          // Ensure audio is initialized on user interaction
+          initializeAudio();
+          triggerReminder();
+        });
       } else {
         console.error("Manual reminder button not found!");
       }
@@ -70,6 +142,8 @@
 
       if (toggleLogBtn && logContainer) {
         toggleLogBtn.addEventListener('click', function() {
+          // Ensure audio is initialized on user interaction
+          initializeAudio();
           const isLogVisible = logContainer.style.display === "block";
           if (isLogVisible) {
             logContainer.style.display = "none";
